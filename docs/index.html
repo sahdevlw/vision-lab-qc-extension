@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vision Lab — Manual QC Tracker</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --surface-2: #232322;
+    --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --baseline: #383835; --border: rgba(255,255,255,0.10);
+    --s1: #3987e5; --s2: #199e70; --s3: #c98500; --s4: #008300; --s5: #9085e9; --s6: #e66767;
+    --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+    --accent: #2f7a52;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 20px 60px; }
+  h1 { font-size: 19px; margin: 0; }
+  h2 { font-size: 14px; color: var(--ink-2); margin: 26px 0 10px; font-weight: 600; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+
+  /* Login */
+  #login { max-width: 360px; margin: 12vh auto; }
+  #login h1 { margin-bottom: 4px; }
+  #login p { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+  #login input { width: 100%; margin-top: 10px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--baseline); background: var(--surface-2); color: var(--ink); font-size: 14px; }
+  #login button { width: 100%; margin-top: 14px; padding: 10px 0; border: none; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 700; font-size: 14px; cursor: pointer; }
+  #login .err { color: var(--s6); font-size: 12.5px; min-height: 16px; margin-top: 8px; }
+
+  /* Header */
+  header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+  header .sp { flex: 1; }
+  select, .seg button { background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--baseline); border-radius: 7px; padding: 6px 10px; font-size: 13px; cursor: pointer; }
+  .seg { display: inline-flex; gap: 4px; }
+  .seg button.on { color: var(--ink); border-color: var(--accent); background: #1f3a2c; }
+  #who { color: var(--muted); font-size: 12px; }
+  #signout { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; text-decoration: underline; }
+
+  /* KPIs */
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .kpi .v { font-size: 24px; font-weight: 700; }
+  .kpi .l { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+  /* Chart */
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 8px 2px 2px; font-size: 12.5px; color: var(--ink-2); }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; }
+  #tip { position: fixed; pointer-events: none; background: var(--surface-2); border: 1px solid var(--baseline); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; display: none; z-index: 10; max-width: 260px; }
+  #tip b { display: block; margin-bottom: 3px; }
+  #tip .row { display: flex; justify-content: space-between; gap: 14px; color: var(--ink-2); }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-weight: 600; font-size: 12px; padding: 7px 10px; border-bottom: 1px solid var(--baseline); }
+  td { padding: 8px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .mix { display: flex; height: 10px; border-radius: 4px; overflow: hidden; min-width: 120px; }
+  .mix div + div { margin-left: 2px; }
+  .badge { display: inline-block; padding: 2px 7px; border-radius: 9px; font-size: 11px; margin: 1px 3px 1px 0; border: 1px solid; white-space: nowrap; }
+  .badge.warn { color: var(--warning); border-color: var(--warning); }
+  .badge.ok { color: var(--good); border-color: var(--good); }
+
+  /* Verify queue */
+  .vrow { border-bottom: 1px solid var(--grid); padding: 10px 4px; }
+  .vrow .top { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .vrow .verdict { font-weight: 700; }
+  .vrow .verdict.major_issues { color: var(--serious); }
+  .vrow .verdict.disqualified { color: var(--critical); }
+  .vrow .meta { color: var(--muted); font-size: 12px; }
+  .vrow .why { color: var(--ink-2); font-size: 12.5px; margin: 4px 0; }
+  .vrow a { color: var(--s1); }
+  .vbtns { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; align-items: center; }
+  .vbtns button { border: 1px solid var(--baseline); background: var(--surface-2); color: var(--ink-2); border-radius: 7px; padding: 5px 10px; font-size: 12.5px; cursor: pointer; }
+  .vbtns button:hover { color: var(--ink); }
+  .vbtns input { flex: 1; min-width: 160px; background: var(--surface-2); border: 1px solid var(--baseline); border-radius: 7px; padding: 5px 9px; color: var(--ink); font-size: 12.5px; }
+  .vdone { font-size: 12px; }
+  .vdone.confirmed { color: var(--good); } .vdone.overturned { color: var(--critical); } .vdone.unsure { color: var(--warning); }
+  .filters { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  #status { color: var(--muted); font-size: 12.5px; margin: 10px 0; min-height: 16px; }
+  .note { color: var(--muted); font-size: 12px; margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div id="login" class="card">
+    <h1>Vision Lab — Manual QC Tracker</h1>
+    <p>Sign in with your Vision Lab account. You'll see the same data your platform access allows.</p>
+    <input id="email" type="email" placeholder="Email" autocomplete="username">
+    <input id="pass" type="password" placeholder="Password" autocomplete="current-password">
+    <button id="loginBtn">Sign in</button>
+    <div class="err" id="loginErr"></div>
+  </div>
+
+  <div id="app" style="display:none">
+    <header>
+      <h1>Manual QC Tracker</h1>
+      <select id="tenant"></select>
+      <div class="seg" id="range">
+        <button data-d="7">7d</button><button data-d="30" class="on">30d</button><button data-d="90">90d</button><button data-d="0">All</button>
+      </div>
+      <div class="sp"></div>
+      <span id="who"></span>
+      <button id="signout">sign out</button>
+    </header>
+    <div id="status">Loading…</div>
+
+    <div class="kpis" id="kpis"></div>
+
+    <h2>Reviews per day, by reviewer</h2>
+    <div class="card">
+      <div id="chart"></div>
+      <div class="legend" id="legend"></div>
+    </div>
+
+    <h2>Reviewers</h2>
+    <div class="card" style="overflow-x:auto">
+      <table id="rev"></table>
+      <div class="note">Flags are prompts to look closer, not verdicts. Verdict-mix bar: <span style="color:var(--good)">pass</span> · <span style="color:var(--s3)">minor</span> · <span style="color:var(--serious)">major</span> · <span style="color:var(--critical)">DQ</span>.</div>
+    </div>
+
+    <h2>Verification queue — Major &amp; Critical calls</h2>
+    <div class="card">
+      <div class="filters seg" id="vfilter">
+        <button data-f="unverified" class="on">Needs verification</button>
+        <button data-f="disqualified">Critical only</button>
+        <button data-f="all">All</button>
+      </div>
+      <div id="queue"></div>
+    </div>
+  </div>
+</div>
+<div id="tip"></div>
+
+<script>
+const FB_KEY = 'AIzaSyDqUP3c44v-S22hyPJdjSTCNAFai_-3914';
+const SB = 'https://wctexzwnqqtnbveracli.supabase.co';
+const ANON = 'sb_publishable_TksKTd1zKGZIkq-qlywZBw_JHdf7ODa';
+const COLORS = ['var(--s1)','var(--s2)','var(--s3)','var(--s4)','var(--s5)','var(--s6)'];
+const VERDICT = { pass: 'Pass', minor_issues: 'Minor', major_issues: 'Major', disqualified: 'Critical/DQ' };
+const TOPIC = { lighting:'Lighting', sharpness:'Sharpness', hands_visible:'Hands', framing:'FOV/framing', camera_angle:'Angle', other_issue:'Other' };
+
+let auth = null; // {idToken, uid, email, exp}
+let data = { reviews: [], names: {}, emails: {}, verifs: [], projects: {} };
+let rangeDays = 30, vfilter = 'unverified';
+
+const $ = (s) => document.querySelector(s);
+const el = (h) => { const d = document.createElement('div'); d.innerHTML = h; return d.firstElementChild; };
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// ---------- auth ----------
+async function signIn(email, pass) {
+  const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FB_KEY}`, {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ email, password: pass, returnSecureToken: true })});
+  const j = await r.json();
+  if (!r.ok) throw new Error((j.error?.message || 'sign-in failed').replace(/_/g,' ').toLowerCase());
+  localStorage.setItem('vlqc_rt', j.refreshToken);
+  auth = { idToken: j.idToken, uid: j.localId, email: j.email, exp: Date.now() + 55*60*1000 };
+}
+async function refresh() {
+  const rt = localStorage.getItem('vlqc_rt');
+  if (!rt) return false;
+  const r = await fetch(`https://securetoken.googleapis.com/v1/token?key=${FB_KEY}`, {
+    method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded'},
+    body: `grant_type=refresh_token&refresh_token=${encodeURIComponent(rt)}`});
+  if (!r.ok) return false;
+  const j = await r.json();
+  const payload = JSON.parse(atob(j.id_token.split('.')[1]));
+  auth = { idToken: j.id_token, uid: j.user_id, email: payload.email, exp: Date.now() + 55*60*1000 };
+  localStorage.setItem('vlqc_rt', j.refresh_token);
+  return true;
+}
+async function sb(path, opts = {}) {
+  if (auth.exp < Date.now()) await refresh();
+  const r = await fetch(`${SB}${path}`, { method: opts.method || 'GET',
+    headers: { apikey: ANON, Authorization: `Bearer ${auth.idToken}`, 'Content-Type': 'application/json',
+               ...(opts.prefer ? { Prefer: opts.prefer } : {}) },
+    body: opts.body ? JSON.stringify(opts.body) : undefined });
+  if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
+  const t = await r.text();
+  return t ? JSON.parse(t) : null;
+}
+
+// ---------- data ----------
+async function loadAll() {
+  $('#status').textContent = 'Loading reviews…';
+  const tenant = $('#tenant').value;
+  const rows = await sb(`/rest/v1/manual_qc_reviews?tenant_id=eq.${tenant}&select=*&order=updated_at.asc&limit=10000`);
+  data.reviews = rows;
+  data.verifs = await sb(`/rest/v1/manual_qc_verifications?tenant_id=eq.${tenant}&select=*&limit=10000`).catch(() => []);
+  // reviewer emails
+  const uids = [...new Set(rows.map(r => r.reviewer_uid))];
+  data.emails = {};
+  for (let i = 0; i < uids.length; i += 60) {
+    const chunk = uids.slice(i, i+60);
+    try { (await sb(`/rest/v1/profiles?user_id=in.(${chunk.map(u=>`"${u}"`).join(',')})&select=user_id,email`))
+      .forEach(p => data.emails[p.user_id] = p.email); } catch {}
+  }
+  // filenames + project names for the verification set
+  const need = [...new Set(rows.filter(r => r.verdict === 'major_issues' || r.verdict === 'disqualified').map(r => r.file_id))];
+  data.names = {};
+  for (let i = 0; i < need.length; i += 60) {
+    const chunk = need.slice(i, i+60);
+    try { (await sb(`/rest/v1/raw_footage?file_id=in.(${chunk.map(u=>`"${u}"`).join(',')})&select=file_id,filename,duration_ms`))
+      .forEach(f => data.names[f.file_id] = f); } catch {}
+  }
+  const pids = [...new Set(rows.map(r => r.project_id).filter(Boolean))];
+  data.projects = {};
+  for (let i = 0; i < pids.length; i += 60) {
+    const chunk = pids.slice(i, i+60);
+    try { (await sb(`/rest/v1/projects?id=in.(${chunk.map(u=>`"${u}"`).join(',')})&select=id,name`))
+      .forEach(p => data.projects[p.id] = p.name); } catch {}
+  }
+  $('#status').textContent = '';
+  renderAll();
+}
+
+const revName = (uid) => (data.emails[uid] || uid).split('@')[0];
+const inRange = (r) => !rangeDays || (Date.now() - new Date(r.updated_at)) < rangeDays * 864e5;
+
+// ---------- rendering ----------
+function renderAll() { renderKpis(); renderChart(); renderTable(); renderQueue(); }
+
+function renderKpis() {
+  const rs = data.reviews.filter(inRange);
+  const today = new Date().toISOString().slice(0,10);
+  const verifiedIds = new Set(data.verifs.map(v => v.review_id));
+  const flagged = data.reviews.filter(r => r.verdict === 'major_issues' || r.verdict === 'disqualified');
+  const kpis = [
+    [rs.length, `Reviews (${rangeDays ? rangeDays + 'd' : 'all'})`],
+    [new Set(rs.map(r => r.file_id)).size, 'Videos covered'],
+    [rs.filter(r => r.updated_at.slice(0,10) === today).length, 'Today'],
+    [rs.filter(r => r.verdict === 'disqualified').length, 'Critical / DQ'],
+    [flagged.filter(r => !verifiedIds.has(r.id)).length, 'Awaiting verification'],
+    [new Set(rs.map(r => r.reviewer_uid)).size, 'Active reviewers'],
+  ];
+  $('#kpis').innerHTML = kpis.map(([v,l]) => `<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+}
+
+function renderChart() {
+  const rs = data.reviews.filter(inRange);
+  const byUid = {};
+  rs.forEach(r => { (byUid[r.reviewer_uid] ||= []).push(r); });
+  let uids = Object.keys(byUid).sort((a,b) => byUid[b].length - byUid[a].length);
+  const main = uids.slice(0, 5), rest = uids.slice(5);
+  const seriesOf = (uid) => main.includes(uid) ? uid : '__other';
+  const series = rest.length ? [...main, '__other'] : main;
+  const label = (s) => s === '__other' ? 'Other' : revName(s);
+
+  const days = [...new Set(rs.map(r => r.updated_at.slice(0,10)))].sort();
+  const stacks = days.map(d => {
+    const dayRows = rs.filter(r => r.updated_at.slice(0,10) === d);
+    const per = {}; dayRows.forEach(r => per[seriesOf(r.reviewer_uid)] = (per[seriesOf(r.reviewer_uid)] || 0) + 1);
+    return { d, per, total: dayRows.length };
+  });
+  const max = Math.max(1, ...stacks.map(s => s.total));
+  const W = Math.max(600, Math.min(1120, days.length * 46)), H = 240, PB = 22, PL = 30;
+  const bw = Math.min(34, (W - PL) / Math.max(days.length, 1) - 8);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:100%">`;
+  for (let g = 0; g <= 4; g++) {
+    const y = (H - PB) * (1 - g/4) ;
+    svg += `<line x1="${PL}" x2="${W}" y1="${y}" y2="${y}" stroke="var(--grid)" stroke-width="1"/>
+            <text x="${PL-6}" y="${y+4}" fill="var(--muted)" font-size="10" text-anchor="end">${Math.round(max*g/4)}</text>`;
+  }
+  stacks.forEach((s, i) => {
+    const x = PL + 8 + i * ((W - PL) / Math.max(days.length,1));
+    let y = H - PB;
+    series.forEach((sid, si) => {
+      const n = s.per[sid] || 0;
+      if (!n) return;
+      const h = Math.max(2, (H - PB - 6) * n / max) - 2;
+      y -= h;
+      svg += `<rect x="${x}" y="${y}" width="${bw}" height="${h}" rx="3" fill="${COLORS[si % 6]}"
+               data-tip="${esc(s.d)}|${esc(label(sid))}|${n}|${s.total}"/>`;
+      y -= 2;
+    });
+    if (i % Math.ceil(days.length / 12) === 0)
+      svg += `<text x="${x + bw/2}" y="${H-6}" fill="var(--muted)" font-size="10" text-anchor="middle">${s.d.slice(5)}</text>`;
+  });
+  svg += '</svg>';
+  $('#chart').innerHTML = svg;
+  $('#legend').innerHTML = series.map((s, i) =>
+    `<span><i style="background:${COLORS[i % 6]}"></i>${esc(label(s))}</span>`).join('');
+  $('#chart').querySelectorAll('rect[data-tip]').forEach(r => {
+    r.addEventListener('mousemove', (e) => {
+      const [d, who, n, tot] = r.dataset.tip.split('|');
+      const tip = $('#tip');
+      tip.innerHTML = `<b>${d}</b><div class="row"><span>${who}</span><span>${n}</span></div><div class="row"><span>day total</span><span>${tot}</span></div>`;
+      tip.style.display = 'block';
+      tip.style.left = Math.min(e.clientX + 14, innerWidth - 200) + 'px';
+      tip.style.top = (e.clientY + 14) + 'px';
+    });
+    r.addEventListener('mouseleave', () => $('#tip').style.display = 'none');
+  });
+}
+
+function flagsFor(uid, rs) {
+  const flags = [];
+  if (rs.length < 15) return flags; // not enough data to judge
+  const secs = rs.map(r => r.review_seconds).filter(Boolean).sort((a,b) => a-b);
+  const med = secs.length ? secs[secs.length >> 1] : null;
+  if (med !== null && med < 60) flags.push(['Very fast reviews', `median ${med}s per video — spot-check quality`]);
+  const vc = {}; rs.forEach(r => vc[r.verdict] = (vc[r.verdict] || 0) + 1);
+  const domVerdict = Object.entries(vc).sort((a,b) => b[1]-a[1])[0];
+  if (domVerdict[1] / rs.length > 0.92) flags.push(['Uniform verdicts', `${Math.round(domVerdict[1]/rs.length*100)}% "${VERDICT[domVerdict[0]]}" — little differentiation`]);
+  const team = data.reviews.filter(inRange);
+  const teamBad = team.filter(r => r.verdict === 'major_issues' || r.verdict === 'disqualified').length / Math.max(team.length,1);
+  const mineBad = rs.filter(r => r.verdict === 'major_issues' || r.verdict === 'disqualified').length / rs.length;
+  if (Math.abs(mineBad - teamBad) > 0.30) flags.push(['Verdict mix far from team', `${Math.round(mineBad*100)}% major/DQ vs team ${Math.round(teamBad*100)}%`]);
+  const noOpt = rs.filter(r => !r.idle_time && r.vl_logo_visible === null && !r.environment_tier).length;
+  if (noOpt / rs.length > 0.9) flags.push(['Skips optional checks', 'idle/logo/environment almost never filled']);
+  const byHour = {}; rs.forEach(r => { const h = r.updated_at.slice(0,13); byHour[h] = (byHour[h]||0)+1; });
+  const burst = Math.max(...Object.values(byHour));
+  if (burst >= 30) flags.push(['Burst activity', `${burst} reviews in one hour — plausible only for very short clips`]);
+  const overturned = data.verifs.filter(v => v.assessment === 'overturned'
+    && rs.some(r => r.id === v.review_id)).length;
+  if (overturned >= 3) flags.push(['Calls overturned in verification', `${overturned} of their major/critical calls overturned`]);
+  return flags;
+}
+
+function renderTable() {
+  const rs = data.reviews.filter(inRange);
+  const byUid = {};
+  rs.forEach(r => (byUid[r.reviewer_uid] ||= []).push(r));
+  const rows = Object.entries(byUid).sort((a,b) => b[1].length - a[1].length).map(([uid, list]) => {
+    const vc = { pass:0, minor_issues:0, major_issues:0, disqualified:0 };
+    list.forEach(r => vc[r.verdict]++);
+    const secs = list.map(r => r.review_seconds).filter(Boolean).sort((a,b)=>a-b);
+    const med = secs.length ? secs[secs.length >> 1] : null;
+    const last = list[list.length-1].updated_at.slice(0,10);
+    const mix = ['pass','minor_issues','major_issues','disqualified'].map((v,i) =>
+      `<div title="${VERDICT[v]}: ${vc[v]}" style="flex:${Math.max(vc[v],0.001)};background:${['var(--good)','var(--s3)','var(--serious)','var(--critical)'][i]}"></div>`).join('');
+    const flags = flagsFor(uid, list);
+    const badges = flags.length
+      ? flags.map(([t, d]) => `<span class="badge warn" title="${esc(d)}">${esc(t)}</span>`).join('')
+      : '<span class="badge ok">no flags</span>';
+    return `<tr><td>${esc(revName(uid))}</td><td class="num">${list.length}</td>
+      <td class="num">${med !== null ? Math.round(med/60) + 'm' + String(med%60).padStart(2,'0') : '—'}</td>
+      <td><div class="mix">${mix}</div></td><td class="num">${vc.disqualified}</td>
+      <td>${last}</td><td>${badges}</td></tr>`;
+  }).join('');
+  $('#rev').innerHTML = `<tr><th>Reviewer</th><th class="num">Reviews</th><th class="num">Median time</th>
+    <th>Verdict mix</th><th class="num">DQ</th><th>Last active</th><th>Flags</th></tr>` + rows;
+}
+
+function renderQueue() {
+  const verifsByReview = {};
+  data.verifs.forEach(v => (verifsByReview[v.review_id] ||= []).push(v));
+  let list = data.reviews.filter(r => (r.verdict === 'major_issues' || r.verdict === 'disqualified') && inRange(r));
+  if (vfilter === 'disqualified') list = list.filter(r => r.verdict === 'disqualified');
+  if (vfilter === 'unverified') list = list.filter(r => !verifsByReview[r.id]);
+  list.sort((a,b) => (a.verdict === 'disqualified' ? 0 : 1) - (b.verdict === 'disqualified' ? 0 : 1)
+    || b.updated_at.localeCompare(a.updated_at));
+  const reasonsText = (r) => Object.entries(r.reasons || {}).filter(([,v]) => v?.length)
+    .map(([k,v]) => `${TOPIC[k] || k}: ${v.join('; ')}`).join(' · ');
+  $('#queue').innerHTML = list.slice(0, 200).map(r => {
+    const f = data.names[r.file_id] || {};
+    const url = `https://vision-lab.linewise.io/resources/org/${r.tenant_id}/projects/${r.project_id}/raw-footages/${r.file_id}`;
+    const vs = (verifsByReview[r.id] || []).map(v =>
+      `<span class="vdone ${v.assessment}">${v.assessment} by ${esc(revName(v.verifier_uid))}${v.note ? ' — ' + esc(v.note) : ''}</span>`).join('<br>');
+    return `<div class="vrow" data-id="${r.id}">
+      <div class="top">
+        <span class="verdict ${r.verdict}">${VERDICT[r.verdict]}</span>
+        <span>${esc(f.filename || r.file_id)}</span>
+        <span class="meta">${esc(data.projects[r.project_id] || '')} · by ${esc(revName(r.reviewer_uid))} · ${r.updated_at.slice(0,10)}</span>
+        <a href="${url}" target="_blank" rel="noopener">watch ↗</a>
+      </div>
+      <div class="why">${esc(reasonsText(r)) || '—'}${r.critical_note ? ' · <i>' + esc(r.critical_note) + '</i>' : ''}${r.notes ? ' · ' + esc(r.notes) : ''}</div>
+      ${vs ? `<div>${vs}</div>` : ''}
+      <div class="vbtns">
+        <button data-a="confirmed">✓ Confirm</button>
+        <button data-a="overturned">✕ Overturn</button>
+        <button data-a="unsure">? Unsure</button>
+        <input placeholder="note (optional — recommended when overturning)">
+      </div>
+    </div>`;
+  }).join('') || '<div class="note" style="padding:12px 4px">Nothing to verify with this filter 🎉</div>';
+
+  $('#queue').querySelectorAll('.vrow').forEach(row => {
+    row.querySelectorAll('button[data-a]').forEach(btn => btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      try {
+        const r = data.reviews.find(x => x.id === row.dataset.id);
+        await sb(`/rest/v1/manual_qc_verifications?on_conflict=review_id,verifier_uid`, {
+          method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal',
+          body: { review_id: r.id, tenant_id: r.tenant_id, verifier_uid: auth.uid,
+                  assessment: btn.dataset.a, note: row.querySelector('input').value || null }});
+        data.verifs = data.verifs.filter(v => !(v.review_id === r.id && v.verifier_uid === auth.uid));
+        data.verifs.push({ review_id: r.id, verifier_uid: auth.uid, assessment: btn.dataset.a, note: row.querySelector('input').value });
+        renderKpis(); renderQueue();
+      } catch (e) { alert('Could not save verification: ' + e.message); btn.disabled = false; }
+    }));
+  });
+}
+
+// ---------- boot ----------
+async function start() {
+  $('#login').style.display = 'none';
+  $('#app').style.display = '';
+  $('#who').textContent = auth.email;
+  const tenants = [...new Set((await sb(`/rest/v1/manual_qc_reviews?select=tenant_id&limit=10000`)).map(r => r.tenant_id))].sort();
+  $('#tenant').innerHTML = tenants.map(t => `<option>${esc(t)}</option>`).join('');
+  await loadAll();
+}
+$('#loginBtn').addEventListener('click', async () => {
+  $('#loginErr').textContent = '';
+  try { await signIn($('#email').value.trim(), $('#pass').value); await start(); }
+  catch (e) { $('#loginErr').textContent = e.message; }
+});
+$('#pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#loginBtn').click(); });
+$('#signout').addEventListener('click', () => { localStorage.removeItem('vlqc_rt'); location.reload(); });
+$('#tenant').addEventListener('change', loadAll);
+$('#range').addEventListener('click', (e) => {
+  if (e.target.tagName !== 'BUTTON') return;
+  rangeDays = Number(e.target.dataset.d);
+  $('#range').querySelectorAll('button').forEach(b => b.classList.toggle('on', b === e.target));
+  renderAll();
+});
+$('#vfilter').addEventListener('click', (e) => {
+  if (e.target.tagName !== 'BUTTON') return;
+  vfilter = e.target.dataset.f;
+  $('#vfilter').querySelectorAll('button').forEach(b => b.classList.toggle('on', b === e.target));
+  renderQueue();
+});
+refresh().then(ok => { if (ok) start(); });
+</script>
+</body>
+</html>
