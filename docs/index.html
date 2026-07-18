@@ -87,12 +87,9 @@
 
   <div id="login" class="card">
     <h1>Vision Lab — Manual QC Tracker</h1>
-    <p>Sign in with your Vision Lab account. You'll see the same data your platform access allows.</p>
-    <button id="googleBtn" style="background:#fff;color:#1a1a19;margin-top:14px">Continue with Google</button>
-    <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:10px">— or with email &amp; password —</div>
-    <input id="email" type="email" placeholder="Email" autocomplete="username">
-    <input id="pass" type="password" placeholder="Password" autocomplete="current-password">
-    <button id="loginBtn">Sign in</button>
+    <p>Enter the team password to view live QC progress.</p>
+    <input id="pass" type="password" placeholder="Team password" autocomplete="current-password">
+    <button id="loginBtn">Open tracker</button>
     <div class="err" id="loginErr"></div>
   </div>
 
@@ -136,114 +133,47 @@
 </div>
 <div id="tip"></div>
 
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script>
-const FB_KEY = 'AIzaSyDqUP3c44v-S22hyPJdjSTCNAFai_-3914';
-const SB = 'https://wctexzwnqqtnbveracli.supabase.co';
-const ANON = 'sb_publishable_TksKTd1zKGZIkq-qlywZBw_JHdf7ODa';
+const FN = 'https://wctexzwnqqtnbveracli.supabase.co/functions/v1/qc-tracker-data';
+const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjdGV4enducXF0bmJ2ZXJhY2xpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2ODExNjAsImV4cCI6MjA4NjI1NzE2MH0.E6udFtAEt82op59E2wNha0JhNom0DQvGNOnjpDuWYh4';
 const COLORS = ['var(--s1)','var(--s2)','var(--s3)','var(--s4)','var(--s5)','var(--s6)'];
 const VERDICT = { pass: 'Pass', minor_issues: 'Minor', major_issues: 'Major', disqualified: 'Critical/DQ' };
 const TOPIC = { lighting:'Lighting', sharpness:'Sharpness', hands_visible:'Hands', framing:'FOV/framing', camera_angle:'Angle', other_issue:'Other' };
 
-let auth = null; // {idToken, uid, email, exp}
+let key = null;
+let allData = null;   // full payload from the proxy
 let data = { reviews: [], names: {}, emails: {}, verifs: [], projects: {} };
 let rangeDays = 30, vfilter = 'unverified';
 
 const $ = (s) => document.querySelector(s);
-const el = (h) => { const d = document.createElement('div'); d.innerHTML = h; return d.firstElementChild; };
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-// ---------- auth ----------
-async function signIn(email, pass) {
-  const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FB_KEY}`, {
-    method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ email, password: pass, returnSecureToken: true })});
-  const j = await r.json();
-  if (!r.ok) throw new Error((j.error?.message || 'sign-in failed').replace(/_/g,' ').toLowerCase());
-  localStorage.setItem('vlqc_rt', j.refreshToken);
-  auth = { idToken: j.idToken, uid: j.localId, email: j.email, exp: Date.now() + 55*60*1000 };
-}
-firebase.initializeApp({ apiKey: FB_KEY, authDomain: 'linewise-455019.firebaseapp.com' });
-
-async function setAuthFromSdkUser(user) {
-  auth = { idToken: await user.getIdToken(), uid: user.uid, email: user.email,
-           exp: Date.now() + 50*60*1000, sdk: true };
-}
-async function signInGoogle() {
-  const cred = await firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider());
-  await setAuthFromSdkUser(cred.user);
-}
-
-async function refresh() {
-  const u = firebase.auth().currentUser;
-  if (u) {
-    auth = auth || {};
-    auth.idToken = await u.getIdToken(true);
-    auth.uid = u.uid; auth.email = u.email; auth.exp = Date.now() + 50*60*1000; auth.sdk = true;
-    return true;
-  }
-  const rt = localStorage.getItem('vlqc_rt');
-  if (!rt) return false;
-  const r = await fetch(`https://securetoken.googleapis.com/v1/token?key=${FB_KEY}`, {
-    method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded'},
-    body: `grant_type=refresh_token&refresh_token=${encodeURIComponent(rt)}`});
-  if (!r.ok) return false;
-  const j = await r.json();
-  const payload = JSON.parse(atob(j.id_token.split('.')[1]));
-  auth = { idToken: j.id_token, uid: j.user_id, email: payload.email, exp: Date.now() + 55*60*1000 };
-  localStorage.setItem('vlqc_rt', j.refresh_token);
-  return true;
-}
-async function sb(path, opts = {}) {
-  if (auth.exp < Date.now()) await refresh();
-  const r = await fetch(`${SB}${path}`, { method: opts.method || 'GET',
-    headers: { apikey: ANON, Authorization: `Bearer ${auth.idToken}`, 'Content-Type': 'application/json',
-               ...(opts.prefer ? { Prefer: opts.prefer } : {}) },
+async function api(opts = {}) {
+  const r = await fetch(FN, { method: opts.method || 'GET',
+    headers: { Authorization: `Bearer ${ANON}`, 'x-tracker-key': key, 'Content-Type': 'application/json' },
     body: opts.body ? JSON.stringify(opts.body) : undefined });
-  if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
-  const t = await r.text();
-  return t ? JSON.parse(t) : null;
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
+  return j;
 }
 
-// ---------- data ----------
-async function loadAll() {
-  $('#status').textContent = 'Loading reviews…';
+function applyTenant() {
   const tenant = $('#tenant').value;
-  const rows = await sb(`/rest/v1/manual_qc_reviews?tenant_id=eq.${tenant}&select=*&order=updated_at.asc&limit=10000`);
-  data.reviews = rows;
-  data.verifs = await sb(`/rest/v1/manual_qc_verifications?tenant_id=eq.${tenant}&select=*&limit=10000`).catch(() => []);
-  // reviewer emails
-  const uids = [...new Set(rows.map(r => r.reviewer_uid))];
-  data.emails = {};
-  for (let i = 0; i < uids.length; i += 60) {
-    const chunk = uids.slice(i, i+60);
-    try { (await sb(`/rest/v1/profiles?user_id=in.(${chunk.map(u=>`"${u}"`).join(',')})&select=user_id,email`))
-      .forEach(p => data.emails[p.user_id] = p.email); } catch {}
-  }
-  // filenames + project names for the verification set
-  const need = [...new Set(rows.filter(r => r.verdict === 'major_issues' || r.verdict === 'disqualified').map(r => r.file_id))];
-  data.names = {};
-  for (let i = 0; i < need.length; i += 60) {
-    const chunk = need.slice(i, i+60);
-    try { (await sb(`/rest/v1/raw_footage?file_id=in.(${chunk.map(u=>`"${u}"`).join(',')})&select=file_id,filename,duration_ms`))
-      .forEach(f => data.names[f.file_id] = f); } catch {}
-  }
-  const pids = [...new Set(rows.map(r => r.project_id).filter(Boolean))];
-  data.projects = {};
-  for (let i = 0; i < pids.length; i += 60) {
-    const chunk = pids.slice(i, i+60);
-    try { (await sb(`/rest/v1/projects?id=in.(${chunk.map(u=>`"${u}"`).join(',')})&select=id,name`))
-      .forEach(p => data.projects[p.id] = p.name); } catch {}
-  }
-  $('#status').textContent = '';
-  renderAll();
+  data.reviews = allData.reviews.filter(r => r.tenant_id === tenant);
+  data.verifs = allData.verifs.filter(v => v.tenant_id === tenant);
+  data.names = allData.names; data.projects = allData.projects; data.emails = allData.emails;
 }
 
-const revName = (uid) => (data.emails[uid] || uid).split('@')[0];
+function verifierName() {
+  let n = localStorage.getItem('vlqc_name');
+  while (!n) { n = (prompt('Your name (recorded with your verification):') || '').trim(); }
+  localStorage.setItem('vlqc_name', n);
+  return n;
+}
+
+const revName = (uid) => uid && uid.startsWith('shared:') ? uid.slice(7) : (data.emails[uid] || uid).split('@')[0];
 const inRange = (r) => !rangeDays || (Date.now() - new Date(r.updated_at)) < rangeDays * 864e5;
 
-// ---------- rendering ----------
 function renderAll() { renderKpis(); renderChart(); renderTable(); renderQueue(); }
 
 function renderKpis() {
@@ -406,12 +336,12 @@ function renderQueue() {
       btn.disabled = true;
       try {
         const r = data.reviews.find(x => x.id === row.dataset.id);
-        await sb(`/rest/v1/manual_qc_verifications?on_conflict=review_id,verifier_uid`, {
-          method: 'POST', prefer: 'resolution=merge-duplicates,return=minimal',
-          body: { review_id: r.id, tenant_id: r.tenant_id, verifier_uid: auth.uid,
-                  assessment: btn.dataset.a, note: row.querySelector('input').value || null }});
-        data.verifs = data.verifs.filter(v => !(v.review_id === r.id && v.verifier_uid === auth.uid));
-        data.verifs.push({ review_id: r.id, verifier_uid: auth.uid, assessment: btn.dataset.a, note: row.querySelector('input').value });
+        const who = 'shared:' + verifierName();
+        await api({ method: 'POST', body: { review_id: r.id, tenant_id: r.tenant_id,
+          assessment: btn.dataset.a, name: verifierName(), note: row.querySelector('input').value || null }});
+        allData.verifs = allData.verifs.filter(v => !(v.review_id === r.id && v.verifier_uid === who));
+        allData.verifs.push({ review_id: r.id, tenant_id: r.tenant_id, verifier_uid: who, assessment: btn.dataset.a, note: row.querySelector('input').value });
+        applyTenant();
         renderKpis(); renderQueue();
       } catch (e) { alert('Could not save verification: ' + e.message); btn.disabled = false; }
     }));
@@ -422,28 +352,27 @@ function renderQueue() {
 async function start() {
   $('#login').style.display = 'none';
   $('#app').style.display = '';
-  $('#who').textContent = auth.email;
-  const tenants = [...new Set((await sb(`/rest/v1/manual_qc_reviews?select=tenant_id&limit=10000`)).map(r => r.tenant_id))].sort();
+  $('#who').textContent = 'team view';
+  $('#status').textContent = 'Loading reviews…';
+  allData = await api();
+  const tenants = [...new Set(allData.reviews.map(r => r.tenant_id))].sort();
   $('#tenant').innerHTML = tenants.map(t => `<option>${esc(t)}</option>`).join('');
-  await loadAll();
+  applyTenant();
+  renderAll();
+  $('#status').textContent = '';
 }
 $('#loginBtn').addEventListener('click', async () => {
   $('#loginErr').textContent = '';
-  try { await signIn($('#email').value.trim(), $('#pass').value); await start(); }
-  catch (e) { $('#loginErr').textContent = e.message; }
-});
-$('#googleBtn').addEventListener('click', async () => {
-  $('#loginErr').textContent = '';
-  try { await signInGoogle(); await start(); }
+  key = $('#pass').value;
+  try { await api(); localStorage.setItem('vlqc_key', key); await start(); }
   catch (e) {
-    $('#loginErr').textContent = e.code === 'auth/unauthorized-domain'
-      ? 'Google sign-in isn’t enabled for this page yet (domain pending authorization) — use email & password below for now.'
-      : (e.message || 'Google sign-in failed');
+    $('#loginErr').textContent = e.message === 'wrong password' ? 'Wrong password' : e.message;
+    $('#login').style.display = ''; $('#app').style.display = 'none';
   }
 });
 $('#pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#loginBtn').click(); });
-$('#signout').addEventListener('click', () => { localStorage.removeItem('vlqc_rt'); location.reload(); });
-$('#tenant').addEventListener('change', loadAll);
+$('#signout').addEventListener('click', () => { localStorage.removeItem('vlqc_key'); location.reload(); });
+$('#tenant').addEventListener('change', () => { applyTenant(); renderAll(); });
 $('#range').addEventListener('click', (e) => {
   if (e.target.tagName !== 'BUTTON') return;
   rangeDays = Number(e.target.dataset.d);
@@ -456,12 +385,8 @@ $('#vfilter').addEventListener('click', (e) => {
   $('#vfilter').querySelectorAll('button').forEach(b => b.classList.toggle('on', b === e.target));
   renderQueue();
 });
-let booted = false;
-firebase.auth().onAuthStateChanged(async (u) => {
-  if (booted) return;
-  if (u) { booted = true; await setAuthFromSdkUser(u); start(); }
-  else if (await refresh()) { booted = true; start(); }
-});
+key = localStorage.getItem('vlqc_key');
+if (key) { start().catch(() => { localStorage.removeItem('vlqc_key'); location.reload(); }); }
 </script>
 </body>
 </html>
