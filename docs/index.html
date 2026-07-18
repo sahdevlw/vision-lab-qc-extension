@@ -18,10 +18,12 @@
   body { margin: 0; background: var(--page); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
   .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 20px 60px; }
   h1 { font-size: 19px; margin: 0; }
-  h2 { font-size: 14px; color: var(--ink-2); margin: 26px 0 10px; font-weight: 600; }
+  h2 { font-size: 15px; margin: 30px 0 4px; }
+  h2 .n { color: var(--muted); font-weight: 400; }
+  .sub { color: var(--muted); font-size: 12.5px; margin: 0 0 10px; }
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .card + .card { margin-top: 10px; }
 
-  /* Login */
   #login { max-width: 360px; margin: 12vh auto; }
   #login h1 { margin-bottom: 4px; }
   #login p { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
@@ -29,40 +31,47 @@
   #login button { width: 100%; margin-top: 14px; padding: 10px 0; border: none; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 700; font-size: 14px; cursor: pointer; }
   #login .err { color: var(--s6); font-size: 12.5px; min-height: 16px; margin-top: 8px; }
 
-  /* Header */
   header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
   header .sp { flex: 1; }
   select, .seg button { background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--baseline); border-radius: 7px; padding: 6px 10px; font-size: 13px; cursor: pointer; }
   .seg { display: inline-flex; gap: 4px; }
   .seg button.on { color: var(--ink); border-color: var(--accent); background: #1f3a2c; }
-  #who { color: var(--muted); font-size: 12px; }
   #signout { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; text-decoration: underline; }
 
-  /* KPIs */
-  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
   .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
-  .kpi .v { font-size: 24px; font-weight: 700; }
+  .kpi .v { font-size: 23px; font-weight: 700; }
+  .kpi .v small { font-size: 13px; color: var(--ink-2); font-weight: 400; }
   .kpi .l { color: var(--muted); font-size: 12px; margin-top: 2px; }
 
-  /* Chart */
+  .chart-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
   .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 8px 2px 2px; font-size: 12.5px; color: var(--ink-2); }
   .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; }
   #tip { position: fixed; pointer-events: none; background: var(--surface-2); border: 1px solid var(--baseline); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; display: none; z-index: 10; max-width: 260px; }
   #tip b { display: block; margin-bottom: 3px; }
   #tip .row { display: flex; justify-content: space-between; gap: 14px; color: var(--ink-2); }
 
-  /* Tables */
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { text-align: left; color: var(--muted); font-weight: 600; font-size: 12px; padding: 7px 10px; border-bottom: 1px solid var(--baseline); }
+  th { text-align: left; color: var(--muted); font-weight: 600; font-size: 12px; padding: 7px 10px; border-bottom: 1px solid var(--baseline); white-space: nowrap; }
   td { padding: 8px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
-  .mix { display: flex; height: 10px; border-radius: 4px; overflow: hidden; min-width: 120px; }
+  tr.clickable { cursor: pointer; }
+  tr.clickable:hover td { background: var(--surface-2); }
+  .mix { display: flex; height: 10px; border-radius: 4px; overflow: hidden; min-width: 110px; }
   .mix div + div { margin-left: 2px; }
+  .pbar { position: relative; height: 10px; border-radius: 4px; background: var(--surface-2); min-width: 90px; overflow: hidden; }
+  .pbar div { position: absolute; inset: 0 auto 0 0; background: var(--s1); border-radius: 4px; }
   .badge { display: inline-block; padding: 2px 7px; border-radius: 9px; font-size: 11px; margin: 1px 3px 1px 0; border: 1px solid; white-space: nowrap; }
   .badge.warn { color: var(--warning); border-color: var(--warning); }
   .badge.ok { color: var(--good); border-color: var(--good); }
 
-  /* Verify queue */
+  .flag { display: flex; gap: 10px; padding: 9px 4px; border-bottom: 1px solid var(--grid); align-items: baseline; flex-wrap: wrap; }
+  .flag .icon { flex: none; }
+  .flag .t { font-weight: 600; }
+  .flag .who { color: var(--s1); }
+  .flag .d { color: var(--ink-2); font-size: 12.5px; }
+  .flag .scope { color: var(--muted); font-size: 12px; }
+
   .vrow { border-bottom: 1px solid var(--grid); padding: 10px 4px; }
   .vrow .top { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
   .vrow .verdict { font-weight: 700; }
@@ -77,7 +86,6 @@
   .vbtns input { flex: 1; min-width: 160px; background: var(--surface-2); border: 1px solid var(--baseline); border-radius: 7px; padding: 5px 9px; color: var(--ink); font-size: 12.5px; }
   .vdone { font-size: 12px; }
   .vdone.confirmed { color: var(--good); } .vdone.overturned { color: var(--critical); } .vdone.unsure { color: var(--warning); }
-  .filters { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
   #status { color: var(--muted); font-size: 12.5px; margin: 10px 0; min-height: 16px; }
   .note { color: var(--muted); font-size: 12px; margin-top: 6px; }
 </style>
@@ -101,34 +109,57 @@
         <button data-d="7">7d</button><button data-d="30" class="on">30d</button><button data-d="90">90d</button><button data-d="0">All</button>
       </div>
       <div class="sp"></div>
-      <span id="who"></span>
+      <button id="refresh" class="seg" style="border:1px solid var(--baseline);border-radius:7px;background:var(--surface-2);color:var(--ink-2);padding:6px 10px;cursor:pointer">↻ refresh</button>
       <button id="signout">sign out</button>
     </header>
     <div id="status">Loading…</div>
 
+    <!-- 1 · VOLUME -->
     <div class="kpis" id="kpis"></div>
 
-    <h2>Reviews per day, by reviewer</h2>
+    <h2>Volume &amp; trends</h2>
+    <p class="sub">How much is getting reviewed, by whom, and is the pace holding.</p>
     <div class="card">
+      <div class="chart-head">
+        <div class="seg" id="metric">
+          <button data-m="count" class="on">Reviews / day</button>
+          <button data-m="hours">Review hours / day</button>
+        </div>
+      </div>
       <div id="chart"></div>
       <div class="legend" id="legend"></div>
     </div>
-
-    <h2>Reviewers</h2>
+    <div class="card" id="tenantCard" style="overflow-x:auto">
+      <table id="tenantTbl"></table>
+      <div class="note">Click a row to focus that org.</div>
+    </div>
     <div class="card" style="overflow-x:auto">
-      <table id="rev"></table>
-      <div class="note">Flags are prompts to look closer, not verdicts. Verdict-mix bar: <span style="color:var(--good)">pass</span> · <span style="color:var(--s3)">minor</span> · <span style="color:var(--serious)">major</span> · <span style="color:var(--critical)">DQ</span>.</div>
+      <table id="projTbl"></table>
     </div>
 
-    <h2>Verification queue — Major &amp; Critical calls</h2>
+    <!-- 2 · QUALITY -->
+    <h2>Quality <span class="n">— reviews &amp; reviewers</span></h2>
+    <p class="sub">Who is reviewing carefully, and do their Major/Critical calls hold up when checked.</p>
+    <div class="card" style="overflow-x:auto">
+      <table id="rev"></table>
+      <div class="note">Verified = this reviewer's Major/Critical calls that a second person checked (✓ confirmed / ✕ overturned). Verdict-mix bar: <span style="color:var(--good)">pass</span> · <span style="color:var(--s3)">minor</span> · <span style="color:var(--serious)">major</span> · <span style="color:var(--critical)">DQ</span>.</div>
+    </div>
     <div class="card">
-      <div class="filters seg" id="vfilter">
-        <button data-f="unverified" class="on">Needs verification</button>
-        <button data-f="disqualified">Critical only</button>
-        <button data-f="all">All</button>
+      <div class="chart-head">
+        <b style="font-size:13.5px">Verification queue — Major &amp; Critical calls</b>
+        <div class="seg" id="vfilter" style="margin-left:auto">
+          <button data-f="unverified" class="on">Needs verification</button>
+          <button data-f="disqualified">Critical only</button>
+          <button data-f="all">All</button>
+        </div>
       </div>
       <div id="queue"></div>
     </div>
+
+    <!-- 3 · FLAGS -->
+    <h2>Flags <span class="n">— worth a closer look</span></h2>
+    <p class="sub">Automatic signals from review patterns and content. Prompts, not verdicts.</p>
+    <div class="card" id="flagCard"></div>
   </div>
 </div>
 <div id="tip"></div>
@@ -140,10 +171,9 @@ const COLORS = ['var(--s1)','var(--s2)','var(--s3)','var(--s4)','var(--s5)','var
 const VERDICT = { pass: 'Pass', minor_issues: 'Minor', major_issues: 'Major', disqualified: 'Critical/DQ' };
 const TOPIC = { lighting:'Lighting', sharpness:'Sharpness', hands_visible:'Hands', framing:'FOV/framing', camera_angle:'Angle', other_issue:'Other' };
 
-let key = null;
-let allData = null;   // full payload from the proxy
-let data = { reviews: [], names: {}, emails: {}, verifs: [], projects: {} };
-let rangeDays = 30, vfilter = 'unverified';
+let key = null, allData = null;
+let data = { reviews: [], names: {}, emails: {}, verifs: [], projects: {}, projectTotals: {} };
+let rangeDays = 30, vfilter = 'unverified', metric = 'count';
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -157,11 +187,12 @@ async function api(opts = {}) {
   return j;
 }
 
-function applyTenant() {
-  const tenant = $('#tenant').value;
-  data.reviews = allData.reviews.filter(r => r.tenant_id === tenant);
-  data.verifs = allData.verifs.filter(v => v.tenant_id === tenant);
-  data.names = allData.names; data.projects = allData.projects; data.emails = allData.emails;
+function applyScope() {
+  const t = $('#tenant').value;
+  data.reviews = t === 'ALL' ? allData.reviews : allData.reviews.filter(r => r.tenant_id === t);
+  data.verifs = t === 'ALL' ? allData.verifs : allData.verifs.filter(v => v.tenant_id === t);
+  data.names = allData.names; data.projects = allData.projects;
+  data.projectTotals = allData.projectTotals || {}; data.emails = allData.emails;
 }
 
 function verifierName() {
@@ -171,20 +202,26 @@ function verifierName() {
   return n;
 }
 
-const revName = (uid) => uid && uid.startsWith('shared:') ? uid.slice(7) : (data.emails[uid] || uid).split('@')[0];
+const revName = (uid) => uid && uid.startsWith('shared:') ? uid.slice(7) : (data.emails[uid] || uid || '?').split('@')[0];
 const inRange = (r) => !rangeDays || (Date.now() - new Date(r.updated_at)) < rangeDays * 864e5;
+const hrs = (secs) => Math.round(secs / 360) / 10;
+const fmtH = (h) => h >= 10 ? Math.round(h) + 'h' : h.toFixed(1) + 'h';
 
-function renderAll() { renderKpis(); renderChart(); renderTable(); renderQueue(); }
+function renderAll() { renderKpis(); renderChart(); renderTenants(); renderProjects(); renderTable(); renderQueue(); renderFlags(); }
 
+// ---------- KPIs ----------
 function renderKpis() {
   const rs = data.reviews.filter(inRange);
   const today = new Date().toISOString().slice(0,10);
+  const todayRows = rs.filter(r => r.updated_at.slice(0,10) === today);
   const verifiedIds = new Set(data.verifs.map(v => v.review_id));
   const flagged = data.reviews.filter(r => r.verdict === 'major_issues' || r.verdict === 'disqualified');
+  const totalSecs = rs.reduce((a, r) => a + (r.review_seconds || 0), 0);
   const kpis = [
     [rs.length, `Reviews (${rangeDays ? rangeDays + 'd' : 'all'})`],
+    [fmtH(hrs(totalSecs)), 'Review time spent'],
+    [`${todayRows.length}<small> · ${fmtH(hrs(todayRows.reduce((a,r)=>a+(r.review_seconds||0),0)))}</small>`, 'Today · time'],
     [new Set(rs.map(r => r.file_id)).size, 'Videos covered'],
-    [rs.filter(r => r.updated_at.slice(0,10) === today).length, 'Today'],
     [rs.filter(r => r.verdict === 'disqualified').length, 'Critical / DQ'],
     [flagged.filter(r => !verifiedIds.has(r.id)).length, 'Awaiting verification'],
     [new Set(rs.map(r => r.reviewer_uid)).size, 'Active reviewers'],
@@ -192,11 +229,14 @@ function renderKpis() {
   $('#kpis').innerHTML = kpis.map(([v,l]) => `<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
 }
 
+// ---------- daily chart (count or hours) ----------
 function renderChart() {
   const rs = data.reviews.filter(inRange);
+  const val = (r) => metric === 'hours' ? (r.review_seconds || 0) / 3600 : 1;
+  const fmt = (v) => metric === 'hours' ? v.toFixed(1) : String(Math.round(v));
   const byUid = {};
   rs.forEach(r => { (byUid[r.reviewer_uid] ||= []).push(r); });
-  let uids = Object.keys(byUid).sort((a,b) => byUid[b].length - byUid[a].length);
+  const uids = Object.keys(byUid).sort((a,b) => byUid[b].length - byUid[a].length);
   const main = uids.slice(0, 5), rest = uids.slice(5);
   const seriesOf = (uid) => main.includes(uid) ? uid : '__other';
   const series = rest.length ? [...main, '__other'] : main;
@@ -205,17 +245,17 @@ function renderChart() {
   const days = [...new Set(rs.map(r => r.updated_at.slice(0,10)))].sort();
   const stacks = days.map(d => {
     const dayRows = rs.filter(r => r.updated_at.slice(0,10) === d);
-    const per = {}; dayRows.forEach(r => per[seriesOf(r.reviewer_uid)] = (per[seriesOf(r.reviewer_uid)] || 0) + 1);
-    return { d, per, total: dayRows.length };
+    const per = {}; dayRows.forEach(r => per[seriesOf(r.reviewer_uid)] = (per[seriesOf(r.reviewer_uid)] || 0) + val(r));
+    return { d, per, total: dayRows.reduce((a,r) => a + val(r), 0) };
   });
-  const max = Math.max(1, ...stacks.map(s => s.total));
-  const W = Math.max(600, Math.min(1120, days.length * 46)), H = 240, PB = 22, PL = 30;
+  const max = Math.max(1e-6, ...stacks.map(s => s.total));
+  const W = Math.max(600, Math.min(1120, days.length * 46)), H = 240, PB = 22, PL = 34;
   const bw = Math.min(34, (W - PL) / Math.max(days.length, 1) - 8);
   let svg = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:100%">`;
   for (let g = 0; g <= 4; g++) {
-    const y = (H - PB) * (1 - g/4) ;
+    const y = (H - PB) * (1 - g/4);
     svg += `<line x1="${PL}" x2="${W}" y1="${y}" y2="${y}" stroke="var(--grid)" stroke-width="1"/>
-            <text x="${PL-6}" y="${y+4}" fill="var(--muted)" font-size="10" text-anchor="end">${Math.round(max*g/4)}</text>`;
+            <text x="${PL-6}" y="${y+4}" fill="var(--muted)" font-size="10" text-anchor="end">${fmt(max*g/4)}</text>`;
   }
   stacks.forEach((s, i) => {
     const x = PL + 8 + i * ((W - PL) / Math.max(days.length,1));
@@ -226,7 +266,7 @@ function renderChart() {
       const h = Math.max(2, (H - PB - 6) * n / max) - 2;
       y -= h;
       svg += `<rect x="${x}" y="${y}" width="${bw}" height="${h}" rx="3" fill="${COLORS[si % 6]}"
-               data-tip="${esc(s.d)}|${esc(label(sid))}|${n}|${s.total}"/>`;
+               data-tip="${esc(s.d)}|${esc(label(sid))}|${fmt(n)}|${fmt(s.total)}"/>`;
       y -= 2;
     });
     if (i % Math.ceil(days.length / 12) === 0)
@@ -236,11 +276,12 @@ function renderChart() {
   $('#chart').innerHTML = svg;
   $('#legend').innerHTML = series.map((s, i) =>
     `<span><i style="background:${COLORS[i % 6]}"></i>${esc(label(s))}</span>`).join('');
+  const unit = metric === 'hours' ? 'h' : '';
   $('#chart').querySelectorAll('rect[data-tip]').forEach(r => {
     r.addEventListener('mousemove', (e) => {
       const [d, who, n, tot] = r.dataset.tip.split('|');
       const tip = $('#tip');
-      tip.innerHTML = `<b>${d}</b><div class="row"><span>${who}</span><span>${n}</span></div><div class="row"><span>day total</span><span>${tot}</span></div>`;
+      tip.innerHTML = `<b>${d}</b><div class="row"><span>${who}</span><span>${n}${unit}</span></div><div class="row"><span>day total</span><span>${tot}${unit}</span></div>`;
       tip.style.display = 'block';
       tip.style.left = Math.min(e.clientX + 14, innerWidth - 200) + 'px';
       tip.style.top = (e.clientY + 14) + 'px';
@@ -249,15 +290,56 @@ function renderChart() {
   });
 }
 
+// ---------- per-org table (All view only) ----------
+function renderTenants() {
+  const all = $('#tenant').value === 'ALL';
+  $('#tenantCard').style.display = all ? '' : 'none';
+  if (!all) return;
+  const byT = {};
+  allData.reviews.filter(inRange).forEach(r => (byT[r.tenant_id] ||= []).push(r));
+  const rows = Object.entries(byT).sort((a,b) => b[1].length - a[1].length).map(([t, list]) => {
+    const dq = list.filter(r => r.verdict === 'disqualified').length;
+    const secs = list.reduce((a,r) => a + (r.review_seconds||0), 0);
+    const last = list.reduce((a,r) => r.updated_at > a ? r.updated_at : a, '').slice(0,10);
+    return `<tr class="clickable" data-t="${esc(t)}"><td>${esc(t)}</td>
+      <td class="num">${list.length}</td><td class="num">${new Set(list.map(r=>r.file_id)).size}</td>
+      <td class="num">${fmtH(hrs(secs))}</td><td class="num">${dq}</td><td>${last}</td></tr>`;
+  }).join('');
+  $('#tenantTbl').innerHTML = `<tr><th>Org</th><th class="num">Reviews</th><th class="num">Videos</th><th class="num">Review time</th><th class="num">DQ</th><th>Last activity</th></tr>` + rows;
+  $('#tenantTbl').querySelectorAll('tr.clickable').forEach(tr => tr.addEventListener('click', () => {
+    $('#tenant').value = tr.dataset.t; applyScope(); renderAll();
+  }));
+}
+
+// ---------- per-project progress ----------
+function renderProjects() {
+  const rs = data.reviews.filter(inRange);
+  const byP = {};
+  rs.forEach(r => { if (r.project_id) (byP[r.project_id] ||= []).push(r); });
+  const rows = Object.entries(byP).sort((a,b) => b[1].length - a[1].length).slice(0, 25).map(([pid, list]) => {
+    const done = new Set(data.reviews.filter(r => r.project_id === pid).map(r => r.file_id)).size; // all-time coverage
+    const total = data.projectTotals[pid] || 0;
+    const pct = total ? Math.min(100, Math.round(done / total * 100)) : null;
+    const dq = list.filter(r => r.verdict === 'disqualified').length;
+    return `<tr><td>${esc(data.projects[pid] || pid)}</td><td>${esc(list[0].tenant_id)}</td>
+      <td class="num">${done}${total ? ' / ' + total : ''}</td>
+      <td><div class="pbar"><div style="width:${pct ?? 0}%"></div></div></td>
+      <td class="num">${pct !== null ? pct + '%' : '—'}</td>
+      <td class="num">${list.length}</td><td class="num">${dq}</td></tr>`;
+  }).join('');
+  $('#projTbl').innerHTML = `<tr><th>Project</th><th>Org</th><th class="num">Videos reviewed</th><th>Progress</th><th class="num">%</th><th class="num">Reviews (${rangeDays ? rangeDays+'d' : 'all'})</th><th class="num">DQ</th></tr>` + rows;
+}
+
+// ---------- reviewer quality ----------
 function flagsFor(uid, rs) {
   const flags = [];
-  if (rs.length < 15) return flags; // not enough data to judge
+  if (rs.length < 15) return flags;
   const secs = rs.map(r => r.review_seconds).filter(Boolean).sort((a,b) => a-b);
   const med = secs.length ? secs[secs.length >> 1] : null;
   if (med !== null && med < 60) flags.push(['Very fast reviews', `median ${med}s per video — spot-check quality`]);
   const vc = {}; rs.forEach(r => vc[r.verdict] = (vc[r.verdict] || 0) + 1);
-  const domVerdict = Object.entries(vc).sort((a,b) => b[1]-a[1])[0];
-  if (domVerdict[1] / rs.length > 0.92) flags.push(['Uniform verdicts', `${Math.round(domVerdict[1]/rs.length*100)}% "${VERDICT[domVerdict[0]]}" — little differentiation`]);
+  const dom = Object.entries(vc).sort((a,b) => b[1]-a[1])[0];
+  if (dom[1] / rs.length > 0.92) flags.push(['Uniform verdicts', `${Math.round(dom[1]/rs.length*100)}% "${VERDICT[dom[0]]}" — little differentiation`]);
   const team = data.reviews.filter(inRange);
   const teamBad = team.filter(r => r.verdict === 'major_issues' || r.verdict === 'disqualified').length / Math.max(team.length,1);
   const mineBad = rs.filter(r => r.verdict === 'major_issues' || r.verdict === 'disqualified').length / rs.length;
@@ -265,10 +347,13 @@ function flagsFor(uid, rs) {
   const noOpt = rs.filter(r => !r.idle_time && r.vl_logo_visible === null && !r.environment_tier).length;
   if (noOpt / rs.length > 0.9) flags.push(['Skips optional checks', 'idle/logo/environment almost never filled']);
   const byHour = {}; rs.forEach(r => { const h = r.updated_at.slice(0,13); byHour[h] = (byHour[h]||0)+1; });
-  const burst = Math.max(...Object.values(byHour));
+  const burst = Math.max(0, ...Object.values(byHour));
   if (burst >= 30) flags.push(['Burst activity', `${burst} reviews in one hour — plausible only for very short clips`]);
-  const overturned = data.verifs.filter(v => v.assessment === 'overturned'
-    && rs.some(r => r.id === v.review_id)).length;
+  const byDaySecs = {}; rs.forEach(r => { const d = r.updated_at.slice(0,10); byDaySecs[d] = (byDaySecs[d]||0) + (r.review_seconds||0); });
+  const maxDay = Math.max(0, ...Object.values(byDaySecs));
+  if (maxDay > 12 * 3600) flags.push(['Implausible daily hours', `${fmtH(hrs(maxDay))} of recorded review time in one day`]);
+  const mine = new Set(rs.map(r => r.id));
+  const overturned = data.verifs.filter(v => v.assessment === 'overturned' && mine.has(v.review_id)).length;
   if (overturned >= 3) flags.push(['Calls overturned in verification', `${overturned} of their major/critical calls overturned`]);
   return flags;
 }
@@ -277,12 +362,18 @@ function renderTable() {
   const rs = data.reviews.filter(inRange);
   const byUid = {};
   rs.forEach(r => (byUid[r.reviewer_uid] ||= []).push(r));
+  const vByReview = {};
+  data.verifs.forEach(v => (vByReview[v.review_id] ||= []).push(v));
   const rows = Object.entries(byUid).sort((a,b) => b[1].length - a[1].length).map(([uid, list]) => {
     const vc = { pass:0, minor_issues:0, major_issues:0, disqualified:0 };
     list.forEach(r => vc[r.verdict]++);
     const secs = list.map(r => r.review_seconds).filter(Boolean).sort((a,b)=>a-b);
     const med = secs.length ? secs[secs.length >> 1] : null;
-    const last = list[list.length-1].updated_at.slice(0,10);
+    const totalSecs = list.reduce((a,r) => a + (r.review_seconds||0), 0);
+    const opt = list.filter(r => r.idle_time || r.vl_logo_visible !== null || r.environment_tier).length;
+    let conf = 0, over = 0;
+    list.forEach(r => (vByReview[r.id] || []).forEach(v => { if (v.assessment === 'confirmed') conf++; if (v.assessment === 'overturned') over++; }));
+    const last = list.reduce((a,r) => r.updated_at > a ? r.updated_at : a, '').slice(0,10);
     const mix = ['pass','minor_issues','major_issues','disqualified'].map((v,i) =>
       `<div title="${VERDICT[v]}: ${vc[v]}" style="flex:${Math.max(vc[v],0.001)};background:${['var(--good)','var(--s3)','var(--serious)','var(--critical)'][i]}"></div>`).join('');
     const flags = flagsFor(uid, list);
@@ -290,14 +381,18 @@ function renderTable() {
       ? flags.map(([t, d]) => `<span class="badge warn" title="${esc(d)}">${esc(t)}</span>`).join('')
       : '<span class="badge ok">no flags</span>';
     return `<tr><td>${esc(revName(uid))}</td><td class="num">${list.length}</td>
-      <td class="num">${med !== null ? Math.round(med/60) + 'm' + String(med%60).padStart(2,'0') : '—'}</td>
-      <td><div class="mix">${mix}</div></td><td class="num">${vc.disqualified}</td>
+      <td class="num">${fmtH(hrs(totalSecs))}</td>
+      <td class="num">${med !== null ? Math.floor(med/60) + 'm' + String(med%60).padStart(2,'0') : '—'}</td>
+      <td><div class="mix">${mix}</div></td>
+      <td class="num">${Math.round(opt / list.length * 100)}%</td>
+      <td class="num"><span style="color:var(--good)">✓${conf}</span> <span style="color:var(--critical)">✕${over}</span></td>
       <td>${last}</td><td>${badges}</td></tr>`;
   }).join('');
-  $('#rev').innerHTML = `<tr><th>Reviewer</th><th class="num">Reviews</th><th class="num">Median time</th>
-    <th>Verdict mix</th><th class="num">DQ</th><th>Last active</th><th>Flags</th></tr>` + rows;
+  $('#rev').innerHTML = `<tr><th>Reviewer</th><th class="num">Reviews</th><th class="num">Time spent</th><th class="num">Median /video</th>
+    <th>Verdict mix</th><th class="num">Optional filled</th><th class="num">Verified</th><th>Last active</th><th>Flags</th></tr>` + rows;
 }
 
+// ---------- verification queue ----------
 function renderQueue() {
   const verifsByReview = {};
   data.verifs.forEach(v => (verifsByReview[v.review_id] ||= []).push(v));
@@ -317,7 +412,7 @@ function renderQueue() {
       <div class="top">
         <span class="verdict ${r.verdict}">${VERDICT[r.verdict]}</span>
         <span>${esc(f.filename || r.file_id)}</span>
-        <span class="meta">${esc(data.projects[r.project_id] || '')} · by ${esc(revName(r.reviewer_uid))} · ${r.updated_at.slice(0,10)}</span>
+        <span class="meta">${esc(data.projects[r.project_id] || '')} · ${esc(r.tenant_id)} · by ${esc(revName(r.reviewer_uid))} · ${r.updated_at.slice(0,10)}</span>
         <a href="${url}" target="_blank" rel="noopener">watch ↗</a>
       </div>
       <div class="why">${esc(reasonsText(r)) || '—'}${r.critical_note ? ' · <i>' + esc(r.critical_note) + '</i>' : ''}${r.notes ? ' · ' + esc(r.notes) : ''}</div>
@@ -341,23 +436,52 @@ function renderQueue() {
           assessment: btn.dataset.a, name: verifierName(), note: row.querySelector('input').value || null }});
         allData.verifs = allData.verifs.filter(v => !(v.review_id === r.id && v.verifier_uid === who));
         allData.verifs.push({ review_id: r.id, tenant_id: r.tenant_id, verifier_uid: who, assessment: btn.dataset.a, note: row.querySelector('input').value });
-        applyTenant();
-        renderKpis(); renderQueue();
+        applyScope();
+        renderKpis(); renderTable(); renderQueue(); renderFlags();
       } catch (e) { alert('Could not save verification: ' + e.message); btn.disabled = false; }
     }));
   });
+}
+
+// ---------- flags section ----------
+function renderFlags() {
+  const rs = data.reviews.filter(inRange);
+  const items = [];
+  // reviewer-behavior flags
+  const byUid = {};
+  rs.forEach(r => (byUid[r.reviewer_uid] ||= []).push(r));
+  Object.entries(byUid).forEach(([uid, list]) => {
+    flagsFor(uid, list).forEach(([t, d]) =>
+      items.push({ icon: '⚠️', t, who: revName(uid), d, scope: [...new Set(list.map(r => r.tenant_id))].join(', ') }));
+  });
+  // content flags: privacy + high-critical projects
+  const byP = {};
+  rs.forEach(r => { if (r.project_id) (byP[r.project_id] ||= []).push(r); });
+  Object.entries(byP).forEach(([pid, list]) => {
+    const faces = list.filter(r => (r.reasons?.other_issue || []).includes('Faces / people identifiable')).length;
+    if (faces >= 5) items.push({ icon: '🔒', t: 'Faces identifiable', who: data.projects[pid] || pid,
+      d: `${faces} videos flagged — check before client delivery`, scope: list[0].tenant_id });
+    const crit = list.filter(r => r.verdict === 'disqualified').length;
+    if (list.length >= 10 && crit / list.length > 0.15) items.push({ icon: '🛑', t: 'High critical rate', who: data.projects[pid] || pid,
+      d: `${crit}/${list.length} reviews critical — likely a site/camera setup problem`, scope: list[0].tenant_id });
+  });
+  $('#flagCard').innerHTML = items.length
+    ? items.map(f => `<div class="flag"><span class="icon">${f.icon}</span><span class="t">${esc(f.t)}</span>
+        <span class="who">${esc(f.who)}</span><span class="d">${esc(f.d)}</span><span class="scope">${esc(f.scope)}</span></div>`).join('')
+    : '<div class="note" style="padding:8px 2px">No flags in this window 🎉</div>';
 }
 
 // ---------- boot ----------
 async function start() {
   $('#login').style.display = 'none';
   $('#app').style.display = '';
-  $('#who').textContent = 'team view';
   $('#status').textContent = 'Loading reviews…';
   allData = await api();
   const tenants = [...new Set(allData.reviews.map(r => r.tenant_id))].sort();
-  $('#tenant').innerHTML = tenants.map(t => `<option>${esc(t)}</option>`).join('');
-  applyTenant();
+  const cur = $('#tenant').value;
+  $('#tenant').innerHTML = `<option value="ALL">All orgs</option>` + tenants.map(t => `<option>${esc(t)}</option>`).join('');
+  $('#tenant').value = tenants.includes(cur) ? cur : 'ALL';
+  applyScope();
   renderAll();
   $('#status').textContent = '';
 }
@@ -372,12 +496,19 @@ $('#loginBtn').addEventListener('click', async () => {
 });
 $('#pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#loginBtn').click(); });
 $('#signout').addEventListener('click', () => { localStorage.removeItem('vlqc_key'); location.reload(); });
-$('#tenant').addEventListener('change', () => { applyTenant(); renderAll(); });
+$('#refresh').addEventListener('click', () => start());
+$('#tenant').addEventListener('change', () => { applyScope(); renderAll(); });
 $('#range').addEventListener('click', (e) => {
   if (e.target.tagName !== 'BUTTON') return;
   rangeDays = Number(e.target.dataset.d);
   $('#range').querySelectorAll('button').forEach(b => b.classList.toggle('on', b === e.target));
   renderAll();
+});
+$('#metric').addEventListener('click', (e) => {
+  if (e.target.tagName !== 'BUTTON') return;
+  metric = e.target.dataset.m;
+  $('#metric').querySelectorAll('button').forEach(b => b.classList.toggle('on', b === e.target));
+  renderChart();
 });
 $('#vfilter').addEventListener('click', (e) => {
   if (e.target.tagName !== 'BUTTON') return;
