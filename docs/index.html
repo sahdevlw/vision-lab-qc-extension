@@ -88,6 +88,8 @@
   <div id="login" class="card">
     <h1>Vision Lab — Manual QC Tracker</h1>
     <p>Sign in with your Vision Lab account. You'll see the same data your platform access allows.</p>
+    <button id="googleBtn" style="background:#fff;color:#1a1a19;margin-top:14px">Continue with Google</button>
+    <div style="text-align:center;color:var(--muted);font-size:12px;margin-top:10px">— or with email &amp; password —</div>
     <input id="email" type="email" placeholder="Email" autocomplete="username">
     <input id="pass" type="password" placeholder="Password" autocomplete="current-password">
     <button id="loginBtn">Sign in</button>
@@ -134,6 +136,8 @@
 </div>
 <div id="tip"></div>
 
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script>
 const FB_KEY = 'AIzaSyDqUP3c44v-S22hyPJdjSTCNAFai_-3914';
 const SB = 'https://wctexzwnqqtnbveracli.supabase.co';
@@ -160,7 +164,25 @@ async function signIn(email, pass) {
   localStorage.setItem('vlqc_rt', j.refreshToken);
   auth = { idToken: j.idToken, uid: j.localId, email: j.email, exp: Date.now() + 55*60*1000 };
 }
+firebase.initializeApp({ apiKey: FB_KEY, authDomain: 'linewise-455019.firebaseapp.com' });
+
+async function setAuthFromSdkUser(user) {
+  auth = { idToken: await user.getIdToken(), uid: user.uid, email: user.email,
+           exp: Date.now() + 50*60*1000, sdk: true };
+}
+async function signInGoogle() {
+  const cred = await firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider());
+  await setAuthFromSdkUser(cred.user);
+}
+
 async function refresh() {
+  const u = firebase.auth().currentUser;
+  if (u) {
+    auth = auth || {};
+    auth.idToken = await u.getIdToken(true);
+    auth.uid = u.uid; auth.email = u.email; auth.exp = Date.now() + 50*60*1000; auth.sdk = true;
+    return true;
+  }
   const rt = localStorage.getItem('vlqc_rt');
   if (!rt) return false;
   const r = await fetch(`https://securetoken.googleapis.com/v1/token?key=${FB_KEY}`, {
@@ -410,6 +432,15 @@ $('#loginBtn').addEventListener('click', async () => {
   try { await signIn($('#email').value.trim(), $('#pass').value); await start(); }
   catch (e) { $('#loginErr').textContent = e.message; }
 });
+$('#googleBtn').addEventListener('click', async () => {
+  $('#loginErr').textContent = '';
+  try { await signInGoogle(); await start(); }
+  catch (e) {
+    $('#loginErr').textContent = e.code === 'auth/unauthorized-domain'
+      ? 'Google sign-in isn’t enabled for this page yet (domain pending authorization) — use email & password below for now.'
+      : (e.message || 'Google sign-in failed');
+  }
+});
 $('#pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#loginBtn').click(); });
 $('#signout').addEventListener('click', () => { localStorage.removeItem('vlqc_rt'); location.reload(); });
 $('#tenant').addEventListener('change', loadAll);
@@ -425,7 +456,12 @@ $('#vfilter').addEventListener('click', (e) => {
   $('#vfilter').querySelectorAll('button').forEach(b => b.classList.toggle('on', b === e.target));
   renderQueue();
 });
-refresh().then(ok => { if (ok) start(); });
+let booted = false;
+firebase.auth().onAuthStateChanged(async (u) => {
+  if (booted) return;
+  if (u) { booted = true; await setAuthFromSdkUser(u); start(); }
+  else if (await refresh()) { booted = true; start(); }
+});
 </script>
 </body>
 </html>
