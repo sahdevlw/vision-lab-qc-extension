@@ -602,10 +602,12 @@ async function start() {
 }
 $('#loginBtn').addEventListener('click', async () => {
   $('#loginErr').textContent = '';
-  key = $('#pass').value;
-  try { await api(); localStorage.setItem('vlqc_key', key); await start(); }
+  key = $('#pass').value || localStorage.getItem('vlqc_key');
+  if (!key) { $('#loginErr').textContent = 'Enter the team password'; return; }
+  try { await start(); localStorage.setItem('vlqc_key', key); }
   catch (e) {
-    $('#loginErr').textContent = e.message === 'wrong password' ? 'Wrong password' : e.message;
+    if (String(e.message).includes('wrong password')) { localStorage.removeItem('vlqc_key'); $('#loginErr').textContent = 'Wrong password'; }
+    else $('#loginErr').textContent = 'Could not load (' + e.message + ') — press Open tracker to retry';
     $('#login').style.display = ''; $('#app').style.display = 'none';
   }
 });
@@ -633,7 +635,14 @@ $('#vfilter').addEventListener('click', (e) => {
   renderQueue();
 });
 key = localStorage.getItem('vlqc_key');
-if (key) { start().catch(() => { localStorage.removeItem('vlqc_key'); location.reload(); }); }
+if (key) {
+  start().catch((e) => {
+    // Never wipe the saved password on a transient failure — only on a real rejection.
+    if (String(e.message).includes('wrong password')) localStorage.removeItem('vlqc_key');
+    $('#login').style.display = ''; $('#app').style.display = 'none';
+    $('#loginErr').textContent = 'Could not load — press Open tracker to retry';
+  });
+}
 </script>
 </body>
 </html>
