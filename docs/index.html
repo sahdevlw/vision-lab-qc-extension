@@ -164,6 +164,17 @@
     <h2>Flags <span class="n">— worth a closer look</span></h2>
     <p class="sub">Automatic signals from review patterns and content. Prompts, not verdicts.</p>
     <div class="card" id="flagCard"></div>
+
+    <!-- 4 · RAW DATA -->
+    <h2>Raw data</h2>
+    <p class="sub">Every review in the selected scope and date range — one row per review.</p>
+    <div class="card">
+      <div class="chart-head">
+        <span id="rawCount" class="note" style="margin:0"></span>
+        <button id="exportCsv" class="seg" style="margin-left:auto;border:1px solid var(--accent);border-radius:7px;background:#1f3a2c;color:var(--ink);padding:6px 12px;cursor:pointer;font-weight:600">⬇ Export CSV</button>
+      </div>
+      <div style="overflow-x:auto;margin-top:8px"><table id="rawTbl"></table></div>
+    </div>
   </div>
 </div>
 <div id="tip"></div>
@@ -213,7 +224,73 @@ const hrs = (secs) => Math.round(secs / 360) / 10;
 const fmtH = (h) => h >= 10 ? Math.round(h) + 'h' : h.toFixed(1) + 'h';
 const activeDays = (list) => new Set(list.map(r => ts(r).slice(0,10))).size || 1;
 
-function renderAll() { renderKpis(); renderChart(); renderActivity(); renderTenants(); renderProjects(); renderTable(); renderQueue(); renderFlags(); }
+function renderAll() { renderKpis(); renderChart(); renderActivity(); renderTenants(); renderProjects(); renderTable(); renderQueue(); renderFlags(); renderRaw(); }
+
+// ---------- raw data + CSV export ----------
+const RATING_TXT = { good: 'No issue', minor: 'Minor', major: 'Major', critical: 'Critical' };
+const IDLE_TXT = { none: 'None', some: 'Some', a_lot: 'A lot' };
+
+function rawRows() {
+  const vByReview = {};
+  data.verifs.forEach(v => (vByReview[v.review_id] ||= []).push(v));
+  return data.reviews.filter(inRange)
+    .sort((a, b) => ts(b).localeCompare(ts(a)))
+    .map(r => {
+      const f = data.names[r.file_id] || {};
+      const reasons = Object.entries(r.reasons || {}).filter(([,v]) => v?.length)
+        .map(([k,v]) => `${TOPIC[k] || k}: ${v.join('; ')}`).join(' | ');
+      const vs = vByReview[r.id] || [];
+      return {
+        reviewed_at: ts(r).slice(0,16).replace('T',' '),
+        org: r.tenant_id,
+        project: data.projects[r.project_id] || '',
+        video: f.filename || r.file_id,
+        reviewer: revName(r.reviewer_uid),
+        verdict: VERDICT[r.verdict] || r.verdict,
+        lighting: RATING_TXT[r.lighting] || '', sharpness: RATING_TXT[r.sharpness] || '',
+        hands: RATING_TXT[r.hands_visible] || '', framing: RATING_TXT[r.framing] || '',
+        angle: RATING_TXT[r.camera_angle] || '', other: RATING_TXT[r.other_issue] || '',
+        reasons,
+        idle: IDLE_TXT[r.idle_time] || '',
+        logo: r.vl_logo_visible === true ? 'Yes' : r.vl_logo_visible === false ? 'No' : '',
+        environment: r.environment_tier || '',
+        critical_note: r.critical_note || '',
+        notes: r.notes || '',
+        review_seconds: r.review_seconds ?? '',
+        verification: vs.map(v => `${v.assessment} by ${revName(v.verifier_uid)}${v.note ? ' ('+v.note+')' : ''}`).join(' | '),
+        url: `https://vision-lab.linewise.io/resources/org/${r.tenant_id}/projects/${r.project_id}/raw-footages/${r.file_id}`,
+      };
+    });
+}
+
+function renderRaw() {
+  const rows = rawRows();
+  const cols = rows.length ? Object.keys(rows[0]) : [];
+  $('#rawCount').textContent = `${rows.length} reviews in scope` + (rows.length > 100 ? ' · showing first 100 — export for all' : '');
+  $('#rawTbl').innerHTML = `<tr>${cols.map(c => `<th${['review_seconds'].includes(c) ? ' class="num"' : ''}>${esc(c)}</th>`).join('')}</tr>`
+    + rows.slice(0, 100).map(r => `<tr>${cols.map(c =>
+        c === 'url' ? `<td><a href="${esc(r.url)}" target="_blank" rel="noopener">watch ↗</a></td>`
+        : `<td${c === 'review_seconds' ? ' class="num"' : ''} style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r[c])}">${esc(r[c])}</td>`
+      ).join('')}</tr>`).join('');
+}
+
+function csvCell(v) {
+  const s = String(v ?? '');
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function exportCsv() {
+  const rows = rawRows();
+  if (!rows.length) return;
+  const cols = Object.keys(rows[0]);
+  const lines = [cols.join(',')].concat(rows.map(r => cols.map(c => csvCell(r[c])).join(',')));
+  const scope = $('#tenant').value === 'ALL' ? 'all_orgs' : $('#tenant').value;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv' }));
+  a.download = `manual_qc_${scope}_${rangeDays ? rangeDays + 'd' : 'all'}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
 
 // ---------- KPIs ----------
 function renderKpis() {
@@ -535,6 +612,7 @@ $('#loginBtn').addEventListener('click', async () => {
 $('#pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('#loginBtn').click(); });
 $('#signout').addEventListener('click', () => { localStorage.removeItem('vlqc_key'); location.reload(); });
 $('#refresh').addEventListener('click', () => start());
+$('#exportCsv').addEventListener('click', exportCsv);
 $('#tenant').addEventListener('change', () => { applyScope(); renderAll(); });
 $('#range').addEventListener('click', (e) => {
   if (e.target.tagName !== 'BUTTON') return;
