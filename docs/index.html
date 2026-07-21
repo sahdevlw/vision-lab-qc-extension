@@ -274,7 +274,10 @@ function rawRows() {
 function renderRaw() {
   const rows = rawRows();
   const cols = rows.length ? Object.keys(rows[0]) : [];
-  $('#rawCount').textContent = `${rows.length} reviews in scope` + (rows.length > 100 ? ' · showing first 100 — export for all' : '');
+  const uniqueVids = new Set(data.reviews.filter(inRange).map(r => r.file_id)).size;
+  $('#rawCount').textContent = `${rows.length} reviews · ${uniqueVids} unique videos in scope`
+    + (rows.length !== uniqueVids ? ' (some videos reviewed by more than one person)' : '')
+    + (rows.length > 100 ? ' · table shows first 100 — export for all' : '');
   $('#rawTbl').innerHTML = `<tr>${cols.map(c => `<th${['review_seconds'].includes(c) ? ' class="num"' : ''}>${esc(c)}</th>`).join('')}</tr>`
     + rows.slice(0, 100).map(r => `<tr>${cols.map(c =>
         c === 'url' ? `<td><a href="${esc(r.url)}" target="_blank" rel="noopener">watch ↗</a></td>`
