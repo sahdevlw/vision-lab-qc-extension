@@ -116,6 +116,7 @@
 
     <!-- 1 · VOLUME -->
     <div class="kpis" id="kpis"></div>
+    <div id="stale" class="note" style="display:none;color:var(--warning);margin-top:8px"></div>
 
     <h2>Volume &amp; trends</h2>
     <p class="sub">How much is getting reviewed, by whom, and is the pace holding.</p>
@@ -317,6 +318,18 @@ function renderKpis() {
     [new Set(rs.map(r => r.reviewer_uid)).size, 'Active reviewers'],
   ];
   $('#kpis').innerHTML = kpis.map(([v,l]) => `<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+
+  // Reviews from outdated extension versions carry no true review time — their
+  // daily placement is approximate (sync time) until the reviewer updates.
+  const undated = data.reviews.filter(r => !r.reviewed_at);
+  const el = $('#stale');
+  if (undated.length) {
+    const who = [...new Set(undated.map(r => revName(r.reviewer_uid)))].join(', ');
+    el.style.display = '';
+    el.textContent = `⚠ ${undated.length} reviews have approximate dates (outdated extension) — ask ${who} to update to the latest version; their history will self-correct.`;
+  } else {
+    el.style.display = 'none';
+  }
 }
 
 // ---------- daily chart (count or hours) ----------
