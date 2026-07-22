@@ -109,6 +109,7 @@
         <button data-d="7">7d</button><button data-d="30" class="on">30d</button><button data-d="90">90d</button><button data-d="0">All</button>
       </div>
       <div class="sp"></div>
+      <span id="freshness" class="note" style="margin:0"></span>
       <button id="refresh" class="seg" style="border:1px solid var(--baseline);border-radius:7px;background:var(--surface-2);color:var(--ink-2);padding:6px 10px;cursor:pointer">↻ refresh</button>
       <button id="signout">sign out</button>
     </header>
@@ -196,7 +197,7 @@ const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 async function api(opts = {}) {
-  const r = await fetch(FN, { method: opts.method || 'GET',
+  const r = await fetch(FN, { method: opts.method || 'GET', cache: 'no-store',
     headers: { Authorization: `Bearer ${ANON}`, 'x-tracker-key': key, 'Content-Type': 'application/json' },
     body: opts.body ? JSON.stringify(opts.body) : undefined });
   const j = await r.json().catch(() => ({}));
@@ -623,6 +624,10 @@ async function start() {
   applyScope();
   renderAll();
   $('#status').textContent = '';
+  if (allData.generated_at) {
+    const t = new Date(allData.generated_at).toLocaleString('en-US', { timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit' });
+    $('#freshness').textContent = `data as of ${t} Manila · ${allData.reviews.length} reviews`;
+  }
 }
 $('#loginBtn').addEventListener('click', async () => {
   $('#loginErr').textContent = '';
