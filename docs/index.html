@@ -86,6 +86,12 @@
   .vbtns input { flex: 1; min-width: 160px; background: var(--surface-2); border: 1px solid var(--baseline); border-radius: 7px; padding: 5px 9px; color: var(--ink); font-size: 12.5px; }
   .vdone { font-size: 12px; }
   .vdone.confirmed { color: var(--good); } .vdone.overturned { color: var(--critical); } .vdone.unsure { color: var(--warning); }
+  .vline { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 2px 0; }
+  .vline button { background: none; border: none; color: var(--muted); font-size: 11.5px; cursor: pointer; text-decoration: underline; padding: 0 2px; }
+  .vline button:hover { color: var(--ink); }
+  .vline .vdel:hover { color: var(--critical); }
+  .vrow[data-edit-uid] { border-left: 2px solid var(--warning); padding-left: 8px; }
+  .editing { color: var(--warning) !important; }
   #status { color: var(--muted); font-size: 12.5px; margin: 10px 0; min-height: 16px; }
   .note { color: var(--muted); font-size: 12px; margin-top: 6px; }
 </style>
@@ -156,6 +162,7 @@
         <b style="font-size:13.5px">Verification queue — Major &amp; Critical calls</b>
         <div class="seg" id="vfilter" style="margin-left:auto">
           <button data-f="unverified" class="on">Needs verification</button>
+          <button data-f="verified">Verified (edit)</button>
           <button data-f="disqualified">Critical only</button>
           <button data-f="all">All</button>
         </div>
@@ -552,6 +559,7 @@ function renderQueue() {
   let list = data.reviews.filter(r => (r.verdict === 'major_issues' || r.verdict === 'disqualified') && inRange(r));
   if (vfilter === 'disqualified') list = list.filter(r => r.verdict === 'disqualified');
   if (vfilter === 'unverified') list = list.filter(r => !verifsByReview[r.id]);
+  if (vfilter === 'verified') list = list.filter(r => verifsByReview[r.id]);
   list.sort((a,b) => (a.verdict === 'disqualified' ? 0 : 1) - (b.verdict === 'disqualified' ? 0 : 1)
     || ts(b).localeCompare(ts(a)));
   const reasonsText = (r) => Object.entries(r.reasons || {}).filter(([,v]) => v?.length)
@@ -560,7 +568,10 @@ function renderQueue() {
     const f = data.names[r.file_id] || {};
     const url = `https://vision-lab.linewise.io/resources/org/${r.tenant_id}/projects/${r.project_id}/raw-footages/${r.file_id}`;
     const vs = (verifsByReview[r.id] || []).map(v =>
-      `<span class="vdone ${v.assessment}">${v.assessment} by ${esc(revName(v.verifier_uid))}${v.note ? ' — ' + esc(v.note) : ''}</span>`).join('<br>');
+      `<div class="vline"><span class="vdone ${v.assessment}">${v.assessment} by ${esc(revName(v.verifier_uid))}${v.note ? ' — ' + esc(v.note) : ' — <i>no note</i>'}</span>`
+      + `${v.edited_by ? `<span class="note" style="margin:0"> (edited by ${esc(v.edited_by)})</span>` : ''}`
+      + ` <button class="vedit" data-uid="${esc(v.verifier_uid)}" data-as="${v.assessment}" data-note="${esc(v.note || '')}">edit</button>`
+      + `<button class="vdel" data-uid="${esc(v.verifier_uid)}">remove</button></div>`).join('');
     return `<div class="vrow" data-id="${r.id}">
       <div class="top">
         <span class="verdict ${r.verdict}">${VERDICT[r.verdict]}</span>
@@ -575,22 +586,54 @@ function renderQueue() {
         <button data-a="overturned">✕ Overturn</button>
         <button data-a="unsure">? Unsure</button>
         <input placeholder="note (optional — recommended when overturning)">
+        <span class="editing note" style="margin:0;display:none"></span>
       </div>
     </div>`;
   }).join('') || '<div class="note" style="padding:12px 4px">Nothing to verify with this filter 🎉</div>';
 
+  const refreshAfterVerify = () => { applyScope(); renderKpis(); renderTable(); renderQueue(); renderFlags(); };
+
   $('#queue').querySelectorAll('.vrow').forEach(row => {
+    const input = row.querySelector('.vbtns input');
+    const editing = row.querySelector('.editing');
+
+    // "edit" — load an existing verification into the row's controls, then the
+    // Confirm/Overturn/Unsure buttons update THAT entry instead of adding a new one.
+    row.querySelectorAll('.vedit').forEach(btn => btn.addEventListener('click', () => {
+      row.dataset.editUid = btn.dataset.uid;
+      input.value = btn.dataset.note || '';
+      input.focus();
+      editing.style.display = '';
+      editing.textContent = `editing ${revName(btn.dataset.uid)}'s entry — pick a verdict to save`;
+    }));
+
+    row.querySelectorAll('.vdel').forEach(btn => btn.addEventListener('click', async () => {
+      if (!confirm(`Remove ${revName(btn.dataset.uid)}'s verification?`)) return;
+      btn.disabled = true;
+      try {
+        const r = data.reviews.find(x => x.id === row.dataset.id);
+        await api({ method: 'POST', body: { remove: true, review_id: r.id,
+          target_uid: btn.dataset.uid, name: verifierName() }});
+        allData.verifs = allData.verifs.filter(v => !(v.review_id === r.id && v.verifier_uid === btn.dataset.uid));
+        refreshAfterVerify();
+      } catch (e) { alert('Could not remove: ' + e.message); btn.disabled = false; }
+    }));
+
     row.querySelectorAll('button[data-a]').forEach(btn => btn.addEventListener('click', async () => {
       btn.disabled = true;
       try {
         const r = data.reviews.find(x => x.id === row.dataset.id);
-        const who = 'shared:' + verifierName();
+        const editUid = row.dataset.editUid || null;
+        const who = editUid || ('shared:' + verifierName());
+        const note = input.value || null;
         await api({ method: 'POST', body: { review_id: r.id, tenant_id: r.tenant_id,
-          assessment: btn.dataset.a, name: verifierName(), note: row.querySelector('input').value || null }});
+          assessment: btn.dataset.a, name: verifierName(), note,
+          ...(editUid ? { target_uid: editUid } : {}) }});
         allData.verifs = allData.verifs.filter(v => !(v.review_id === r.id && v.verifier_uid === who));
-        allData.verifs.push({ review_id: r.id, tenant_id: r.tenant_id, verifier_uid: who, assessment: btn.dataset.a, note: row.querySelector('input').value });
-        applyScope();
-        renderKpis(); renderTable(); renderQueue(); renderFlags();
+        allData.verifs.push({ review_id: r.id, tenant_id: r.tenant_id, verifier_uid: who,
+          assessment: btn.dataset.a, note,
+          ...(editUid ? { edited_by: verifierName() } : {}) });
+        refreshAfterVerify();
       } catch (e) { alert('Could not save verification: ' + e.message); btn.disabled = false; }
     }));
   });
